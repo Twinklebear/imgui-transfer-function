@@ -7,8 +7,10 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
+#include "shader.h"
+#include "transfer_function_widget.h"
 
-const std::string fullscreen_quad_vs = R"(
+const std::string display_colormap_vs = R"(
 #version 450 core
 
 const vec4 pos[4] = vec4[4](
@@ -18,25 +20,34 @@ const vec4 pos[4] = vec4[4](
 	vec4(1, -1, 0.5, 1)
 );
 
-void main(void){
+const float uv[4] = float[4](0, 0, 1, 1);
+
+out float vuv;
+
+void main(void) {
 	gl_Position = pos[gl_VertexID];
+	vuv = uv[gl_VertexID];
 }
 )";
 
-const std::string display_texture_fs = R"(
+const std::string display_colormap_fs = R"(
 #version 450 core
 
-layout(binding=0) uniform sampler2D img;
+layout(binding = 0) uniform sampler1D img;
+
+in float vuv;
 
 out vec4 color;
 
-void main(void){ 
-	ivec2 uv = ivec2(gl_FragCoord.xy);
-	color = texelFetch(img, uv, 0);
+void main(void) { 
+	color = texture(img, vuv);
+	color.rgb = color.rgb * color.a;
 })";
 
 int win_width = 1280;
 int win_height = 720;
+
+void run_app(int argc, const char **argv, SDL_Window *window);
 
 int main(int argc, const char **argv) {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -49,7 +60,6 @@ int main(int argc, const char **argv) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
 	// Create window with graphics context
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -79,9 +89,50 @@ int main(int argc, const char **argv) {
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
+	run_app(argc, argv, window);
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
+	SDL_GL_DeleteContext(gl_context);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+
+	return 0;
+}
+
+void run_app(int argc, const char **argv, SDL_Window *window) {
 	ImGuiIO& io = ImGui::GetIO();
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+
+	TransferFunctionWidget tfn_widget;
+
+	// A texture so we can color the background of the window by the colormap
+	GLuint colormap_texture;
+	glGenTextures(1, &colormap_texture);
+	glBindTexture(GL_TEXTURE_1D, colormap_texture);
+	{
+		auto colormap = tfn_widget.get_colormap();
+		glTexStorage1D(GL_TEXTURE_1D, 1, GL_RGBA8, colormap.size() / 4);
+		glTexSubImage1D(GL_TEXTURE_1D, 0, 0, colormap.size() / 4, GL_RGBA,
+				GL_UNSIGNED_BYTE, colormap.data());
+	}
+
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+
+
+	GLuint vao;
+	glCreateVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+	Shader display_colormap(display_colormap_vs, display_colormap_fs);
 
 	bool done = false;
 	while (!done) {
@@ -108,6 +159,12 @@ int main(int argc, const char **argv) {
 			}
 		}
 
+		if (tfn_widget.changed()) {
+			auto colormap = tfn_widget.get_colormap();
+			glTexSubImage1D(GL_TEXTURE_1D, 0, 0, colormap.size() / 4, GL_RGBA,
+					GL_UNSIGNED_BYTE, colormap.data());
+		}
+
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame(window);
 		ImGui::NewFrame();
@@ -115,6 +172,7 @@ int main(int argc, const char **argv) {
 		ImGui::Begin("Debug Panel");
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
 				1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		tfn_widget.draw_ui();
 		ImGui::End();
 
 		// Rendering
@@ -122,23 +180,12 @@ int main(int argc, const char **argv) {
 		glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		// TODO: Just draw a quad colored by the transfer fcn
-		//glUseProgram(display_render.program);
-		//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glUseProgram(display_colormap.program);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		SDL_GL_SwapWindow(window);
 	}
-
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
-
-	SDL_GL_DeleteContext(gl_context);
-	SDL_DestroyWindow(window);
-	SDL_Quit();
-
-	return 0;
 }
 
