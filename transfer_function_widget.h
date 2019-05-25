@@ -1,8 +1,17 @@
 #pragma once
 
+#include <string>
 #include <cstdint>
 #include <vector>
 #include "imgui.h"
+
+struct Colormap {
+	std::string name;
+	// An RGBA8 1D image
+	std::vector<uint8_t> colormap;
+
+	Colormap(const std::string &name, const std::vector<uint8_t> &img);
+};
 
 class TransferFunctionWidget {
 	struct vec2f {
@@ -21,15 +30,20 @@ class TransferFunctionWidget {
 		operator ImVec2() const;
 	};
 
-	std::vector<uint8_t> colormap;
+	std::vector<Colormap> colormaps;
+	size_t selected_colormap = 0;
+	std::vector<uint8_t> current_colormap;
+
 	std::vector<vec2f> alpha_control_pts = {vec2f(0.f), vec2f(1.f)};
 	size_t selected_point = -1;
+
 	bool colormap_changed = true;
 	GLuint colormap_img = -1;
 
 public:
 	TransferFunctionWidget();
 
+	void add_colormap(const Colormap &map);
 	// Add the transfer function UI into the currently active window
 	void draw_ui();
 	// Returns true if the colormap was updated since the last

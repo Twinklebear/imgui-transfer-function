@@ -21,6 +21,9 @@ T clamp(T x, T min, T max) {
 	return x;
 }
 
+Colormap::Colormap(const std::string &name, const std::vector<uint8_t> &img)
+	: name(name), colormap(img)
+{}
 
 TransferFunctionWidget::vec2f::vec2f(float c) : x(c), y(c) {}
 TransferFunctionWidget::vec2f::vec2f(float x, float y) : x(x), y(y) {}
@@ -51,14 +54,32 @@ TransferFunctionWidget::vec2f::operator ImVec2() const {
 }
 
 TransferFunctionWidget::TransferFunctionWidget() {
+	// Load up the embedded colormaps as the default options
 	int w, h, n;
 	uint8_t *img_data = stbi_load_from_memory(paraview_cool_warm,
 			sizeof(paraview_cool_warm), &w, &h, &n, 4);
-	colormap = std::vector<uint8_t>(img_data, img_data + w * h * 4);
+	auto img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
 	stbi_image_free(img_data);
+	colormaps.emplace_back("ParaView Cool Warm", img);
+
+	img_data = stbi_load_from_memory(rainbow,
+			sizeof(rainbow), &w, &h, &n, 4);
+	img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
+	stbi_image_free(img_data);
+	colormaps.emplace_back("Rainbow", img);
+
+	img_data = stbi_load_from_memory(matplotlib_plasma,
+			sizeof(matplotlib_plasma), &w, &h, &n, 4);
+	img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
+	stbi_image_free(img_data);
+	colormaps.emplace_back("Matplotlib Plasma", img);
 
 	// Initialize the colormap alpha channel w/ a linear ramp
 	update_colormap();
+}
+
+void TransferFunctionWidget::add_colormap(const Colormap &map) {
+	colormaps.push_back(map);
 }
 
 void TransferFunctionWidget::draw_ui() {
@@ -75,8 +96,8 @@ void TransferFunctionWidget::draw_ui() {
 	}
 	if (colormap_changed) {
 		glBindTexture(GL_TEXTURE_2D, colormap_img);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, colormap.size() / 4, 1, 0,
-				GL_RGBA, GL_UNSIGNED_BYTE, colormap.data());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, current_colormap.size() / 4, 1, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, current_colormap.data());
 	}
 	if (prev_tex_2d != 0) {
 		glBindTexture(GL_TEXTURE_2D, prev_tex_2d);
@@ -90,13 +111,22 @@ void TransferFunctionWidget::draw_ui() {
 	ImGui::TextWrapped("Left click to add a point, right click remove. "
 			"Left click + drag to move points.");
 
+	if (ImGui::BeginCombo("Colormap", colormaps[selected_colormap].name.c_str())) {
+		for (size_t i = 0; i < colormaps.size(); ++i) {
+			if (ImGui::Selectable(colormaps[i].name.c_str(), selected_colormap == i)) {
+				selected_colormap = i;
+				update_colormap();
+			}
+		}
+		ImGui::EndCombo();
+	}
+
 	vec2f canvas_size = ImGui::GetContentRegionAvail();
 	// Note: If you're not using OpenGL for rendering your UI, the setup for
 	// displaying the colormap texture in the UI will need to be updated.
 	ImGui::Image(reinterpret_cast<void*>(colormap_img), ImVec2(canvas_size.x, 16));
 	vec2f canvas_pos = ImGui::GetCursorScreenPos();
 	canvas_size.y -= 80;
-
 
 	const float point_radius = 10.f;
 
@@ -198,15 +228,16 @@ bool TransferFunctionWidget::changed() const {
 }
 
 std::vector<uint8_t> TransferFunctionWidget::get_colormap() {
-	return colormap;
+	return current_colormap;
 }
 
 void TransferFunctionWidget::update_colormap() {
 	colormap_changed = true;
+	current_colormap = colormaps[selected_colormap].colormap;
 	// We only change opacities for now, so go through and update the opacity
 	// by blending between the neighboring control points
 	auto a_it = alpha_control_pts.begin();
-	const size_t npixels = colormap.size() / 4;
+	const size_t npixels = current_colormap.size() / 4;
 	for (size_t i = 0; i < npixels; ++i) {
 		float x = static_cast<float>(i) / npixels;
 		auto high = a_it + 1;
@@ -216,7 +247,7 @@ void TransferFunctionWidget::update_colormap() {
 		}
 		float t = (x - a_it->x) / (high->x - a_it->x);
 		float alpha = (1.f - t) * a_it->y + t * high->y;
-		colormap[i * 4 + 3] = static_cast<uint8_t>(clamp(alpha * 255.f, 0.f, 255.f));
+		current_colormap[i * 4 + 3] = static_cast<uint8_t>(clamp(alpha * 255.f, 0.f, 255.f));
 	}
 }
 
