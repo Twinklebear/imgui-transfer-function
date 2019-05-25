@@ -5,8 +5,6 @@
 #include <string>
 #include <fstream>
 #include <regex>
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
 #include "shader.h"
 
 // Load a GLSL shader from the file. Returns -1 if loading fails and prints
@@ -71,16 +69,6 @@ void Shader::uniform<int>(const std::string &unif, const int &t) {
 template<>
 void Shader::uniform<float>(const std::string &unif, const float &t) {
 	glUniform1f(uniforms[unif], t);
-}
-
-template<>
-void Shader::uniform<glm::vec3>(const std::string &unif, const glm::vec3 &t) {
-	glUniform3fv(uniforms[unif], 1, &t.x);
-}
-
-template<>
-void Shader::uniform<glm::mat4>(const std::string &unif, const glm::mat4 &t) {
-	glUniformMatrix4fv(uniforms[unif], 1, GL_FALSE, glm::value_ptr(t));
 }
 
 void Shader::parse_uniforms(const std::string &src) {
