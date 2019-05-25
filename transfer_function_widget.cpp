@@ -249,7 +249,7 @@ void TransferFunctionWidget::load_embedded_preset(const uint8_t *buf, size_t siz
 {
 	int w, h, n;
 	uint8_t *img_data = stbi_load_from_memory(buf, size, &w, &h, &n, 4);
-	auto img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
+	auto img = std::vector<uint8_t>(img_data, img_data + w * 1 * 4);
 	stbi_image_free(img_data);
 	colormaps.emplace_back(name, img);
 }

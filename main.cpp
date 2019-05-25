@@ -9,6 +9,7 @@
 #include "imgui_impl_opengl3.h"
 #include "shader.h"
 #include "transfer_function_widget.h"
+#include "stb_image.h"
 
 const std::string display_colormap_vs = R"(
 #version 450 core
@@ -107,21 +108,25 @@ void run_app(int argc, const char **argv, SDL_Window *window) {
 
 	TransferFunctionWidget tfn_widget;
 
+	// Load any extra colormaps the user wants to see in the demo
+	for (int i = 1; i < argc; ++i) {
+		int w, h, n;
+		uint8_t *img_data = stbi_load(argv[i], &w, &h, &n, 4);
+		auto img = std::vector<uint8_t>(img_data, img_data + w * 1 * 4);
+		stbi_image_free(img_data);
+		tfn_widget.add_colormap(Colormap(argv[i], img));
+	}
+
 	// A texture so we can color the background of the window by the colormap
 	GLuint colormap_texture;
 	glGenTextures(1, &colormap_texture);
 	glBindTexture(GL_TEXTURE_1D, colormap_texture);
-	{
-		auto colormap = tfn_widget.get_colormap();
-		glTexStorage1D(GL_TEXTURE_1D, 1, GL_RGBA8, colormap.size() / 4);
-		glTexSubImage1D(GL_TEXTURE_1D, 0, 0, colormap.size() / 4, GL_RGBA,
-				GL_UNSIGNED_BYTE, colormap.data());
-	}
-
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
+	auto colormap = tfn_widget.get_colormap();
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, colormap.size() / 4, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, colormap.data());
 
 	GLuint vao;
 	glCreateVertexArrays(1, &vao);
@@ -161,8 +166,8 @@ void run_app(int argc, const char **argv, SDL_Window *window) {
 
 		if (tfn_widget.changed()) {
 			auto colormap = tfn_widget.get_colormap();
-			glTexSubImage1D(GL_TEXTURE_1D, 0, 0, colormap.size() / 4, GL_RGBA,
-					GL_UNSIGNED_BYTE, colormap.data());
+			glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, colormap.size() / 4, 0,
+					GL_RGBA, GL_UNSIGNED_BYTE, colormap.data());
 		}
 
 		ImGui_ImplOpenGL3_NewFrame();
