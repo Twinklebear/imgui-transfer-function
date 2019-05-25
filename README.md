@@ -31,7 +31,9 @@ The Colormap image should be a 1D RGBA8 image.
 See the [example/](example/) for an example use case of the widget
 with OpenGL. Additional image files can be passed as arguments to load additional
 presets beyond the included presets, the resulting colormap is drawn
-with alpha blending as the window background.
+with alpha blending as the window background. The example requires SDL2
+which is found through CMake, if it fails to find it you can specify the
+root directory of you SDL2 by passing `-DSDL2_DIR=<path>` when running CMake.
 
 ![Example image](https://i.imgur.com/piHEPEl.png)
 
