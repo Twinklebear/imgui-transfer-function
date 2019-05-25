@@ -1,6 +1,5 @@
 #include <iostream>
 #include <algorithm>
-#include "gl_core_4_5.h"
 #include "transfer_function_widget.h"
 #include "embedded_colormaps.h"
 
@@ -77,27 +76,8 @@ void TransferFunctionWidget::add_colormap(const Colormap &map) {
 }
 
 void TransferFunctionWidget::draw_ui() {
-	GLint prev_tex_2d = 0;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &prev_tex_2d);
-
-	if (colormap_img == (GLuint)-1) {
-		glGenTextures(1, &colormap_img);
-		glBindTexture(GL_TEXTURE_2D, colormap_img);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	}
-	if (colormap_changed) {
-		glBindTexture(GL_TEXTURE_2D, colormap_img);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, current_colormap.size() / 4, 1, 0,
-				GL_RGBA, GL_UNSIGNED_BYTE, current_colormap.data());
-	}
-	if (prev_tex_2d != 0) {
-		glBindTexture(GL_TEXTURE_2D, prev_tex_2d);
-	}
+	update_gpu_image();
 	colormap_changed = false;
-
 
 	const ImGuiIO &io = ImGui::GetIO();
 
@@ -223,6 +203,28 @@ bool TransferFunctionWidget::changed() const {
 
 std::vector<uint8_t> TransferFunctionWidget::get_colormap() {
 	return current_colormap;
+}
+
+void TransferFunctionWidget::update_gpu_image() {
+	GLint prev_tex_2d = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &prev_tex_2d);
+
+	if (colormap_img == (GLuint)-1) {
+		glGenTextures(1, &colormap_img);
+		glBindTexture(GL_TEXTURE_2D, colormap_img);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	}
+	if (colormap_changed) {
+		glBindTexture(GL_TEXTURE_2D, colormap_img);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, current_colormap.size() / 4, 1, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, current_colormap.data());
+	}
+	if (prev_tex_2d != 0) {
+		glBindTexture(GL_TEXTURE_2D, prev_tex_2d);
+	}
 }
 
 void TransferFunctionWidget::update_colormap() {

@@ -5,6 +5,8 @@
 #include <vector>
 #include "imgui.h"
 
+#include "gl_core_4_5.h"
+
 struct Colormap {
 	std::string name;
 	// An RGBA8 1D image
@@ -54,6 +56,7 @@ public:
 	std::vector<uint8_t> get_colormap();
 
 private:
+	void update_gpu_image();
 	void update_colormap();
 
 	void load_embedded_preset(const uint8_t *buf, size_t size,
