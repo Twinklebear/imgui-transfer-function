@@ -55,24 +55,18 @@ TransferFunctionWidget::vec2f::operator ImVec2() const {
 
 TransferFunctionWidget::TransferFunctionWidget() {
 	// Load up the embedded colormaps as the default options
-	int w, h, n;
-	uint8_t *img_data = stbi_load_from_memory(paraview_cool_warm,
-			sizeof(paraview_cool_warm), &w, &h, &n, 4);
-	auto img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
-	stbi_image_free(img_data);
-	colormaps.emplace_back("ParaView Cool Warm", img);
-
-	img_data = stbi_load_from_memory(rainbow,
-			sizeof(rainbow), &w, &h, &n, 4);
-	img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
-	stbi_image_free(img_data);
-	colormaps.emplace_back("Rainbow", img);
-
-	img_data = stbi_load_from_memory(matplotlib_plasma,
-			sizeof(matplotlib_plasma), &w, &h, &n, 4);
-	img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
-	stbi_image_free(img_data);
-	colormaps.emplace_back("Matplotlib Plasma", img);
+	load_embedded_preset(paraview_cool_warm, sizeof(paraview_cool_warm),
+			"ParaView Cool Warm");
+	load_embedded_preset(rainbow, sizeof(rainbow),
+			"Rainbow");
+	load_embedded_preset(matplotlib_plasma, sizeof(matplotlib_plasma),
+			"Matplotlib Plasma");
+	load_embedded_preset(matplotlib_virdis, sizeof(matplotlib_virdis),
+			"Matplotlib Virds");
+	load_embedded_preset(samsel_linear_green, sizeof(samsel_linear_green),
+			"Samsel Linear Green");
+	load_embedded_preset(samsel_linear_ygb_1211g, sizeof(samsel_linear_ygb_1211g),
+			"Samsel Linear YGB 1211G");
 
 	// Initialize the colormap alpha channel w/ a linear ramp
 	update_colormap();
@@ -249,5 +243,14 @@ void TransferFunctionWidget::update_colormap() {
 		float alpha = (1.f - t) * a_it->y + t * high->y;
 		current_colormap[i * 4 + 3] = static_cast<uint8_t>(clamp(alpha * 255.f, 0.f, 255.f));
 	}
+}
+void TransferFunctionWidget::load_embedded_preset(const uint8_t *buf, size_t size,
+		const std::string &name)
+{
+	int w, h, n;
+	uint8_t *img_data = stbi_load_from_memory(buf, size, &w, &h, &n, 4);
+	auto img = std::vector<uint8_t>(img_data, img_data + w * h * 4);
+	stbi_image_free(img_data);
+	colormaps.emplace_back(name, img);
 }
 

@@ -54,5 +54,8 @@ public:
 
 private:
 	void update_colormap();
+
+	void load_embedded_preset(const uint8_t *buf, size_t size,
+			const std::string &name);
 };
 
