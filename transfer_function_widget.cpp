@@ -61,7 +61,7 @@ TransferFunctionWidget::TransferFunctionWidget() {
 	load_embedded_preset(matplotlib_plasma, sizeof(matplotlib_plasma),
 			"Matplotlib Plasma");
 	load_embedded_preset(matplotlib_virdis, sizeof(matplotlib_virdis),
-			"Matplotlib Virds");
+			"Matplotlib Virdis");
 	load_embedded_preset(samsel_linear_green, sizeof(samsel_linear_green),
 			"Samsel Linear Green");
 	load_embedded_preset(samsel_linear_ygb_1211g, sizeof(samsel_linear_ygb_1211g),
