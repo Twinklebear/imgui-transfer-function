@@ -57,6 +57,13 @@ public:
     // Get back the RGBA8 color data for the transfer function
     std::vector<uint8_t> get_colormap();
 
+    // Get back the RGBA32F color data for the transfer function
+    std::vector<float> get_colormapf();
+
+    // Get back the RGBA32F color data for the transfer function
+    // as separate color and opacity vectors
+    void get_colormapf(std::vector<float> &color, std::vector<float> &opacity);
+
 private:
     void update_gpu_image();
 
