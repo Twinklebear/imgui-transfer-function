@@ -77,6 +77,12 @@ TransferFunctionWidget::TransferFunctionWidget()
     load_embedded_preset(samsel_linear_green, sizeof(samsel_linear_green), "Samsel Linear Green");
     load_embedded_preset(
         samsel_linear_ygb_1211g, sizeof(samsel_linear_ygb_1211g), "Samsel Linear YGB 1211G");
+    load_embedded_preset(cool_warm_extended, sizeof(cool_warm_extended), "Cool Warm Extended");
+    load_embedded_preset(blackbody, sizeof(blackbody), "Black Body");
+    load_embedded_preset(jet, sizeof(jet), "Jet");
+    load_embedded_preset(blue_gold, sizeof(blue_gold), "Blue Gold");
+    load_embedded_preset(ice_fire, sizeof(ice_fire), "Ice Fire");
+    load_embedded_preset(nic_edge, sizeof(nic_edge), "nic Edge");
 
     // Initialize the colormap alpha channel w/ a linear ramp
     update_colormap();
