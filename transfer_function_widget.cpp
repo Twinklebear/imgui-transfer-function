@@ -237,7 +237,7 @@ void TransferFunctionWidget::get_colormapf(std::vector<float> &color, std::vecto
 {
     color.resize((current_colormap.size() / 4) * 3);
     opacity.resize(current_colormap.size() / 4);
-    for (size_t i = 0; i < current_colormap.size(); ++i) {
+    for (size_t i = 0; i < current_colormap.size() / 4; ++i) {
         color[i * 3] = current_colormap[i * 4] / 255.f;
         color[i * 3 + 1] = current_colormap[i * 4 + 1] / 255.f;
         color[i * 3 + 2] = current_colormap[i * 4 + 2] / 255.f;
