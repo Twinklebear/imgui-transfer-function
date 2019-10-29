@@ -119,7 +119,8 @@ void run_app(int argc, const char **argv, SDL_Window *window)
         uint8_t *img_data = stbi_load(argv[i], &w, &h, &n, 4);
         auto img = std::vector<uint8_t>(img_data, img_data + w * 1 * 4);
         stbi_image_free(img_data);
-        tfn_widget.add_colormap(Colormap(argv[i], img));
+        // Input images are assumed to be sRGB color-space
+        tfn_widget.add_colormap(Colormap(argv[i], img, SRGB));
     }
 
     // A texture so we can color the background of the window by the colormap

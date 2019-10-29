@@ -6,12 +6,17 @@
 #include "gl_core_4_5.h"
 #include "imgui.h"
 
+enum ColorSpace { LINEAR, SRGB };
+
 struct Colormap {
     std::string name;
     // An RGBA8 1D image
     std::vector<uint8_t> colormap;
+    ColorSpace color_space;
 
-    Colormap(const std::string &name, const std::vector<uint8_t> &img);
+    Colormap(const std::string &name,
+             const std::vector<uint8_t> &img,
+             const ColorSpace color_space);
 };
 
 class TransferFunctionWidget {
@@ -44,7 +49,8 @@ class TransferFunctionWidget {
 public:
     TransferFunctionWidget();
 
-    // Add a colormap preset. The image should be a 1D RGBA8 image
+    // Add a colormap preset. The image should be a 1D RGBA8 image, if the image
+    // is provided in sRGBA colorspace it will be linearized
     void add_colormap(const Colormap &map);
 
     // Add the transfer function UI into the currently active window

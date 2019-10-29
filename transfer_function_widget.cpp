@@ -11,7 +11,7 @@
 #include "stb_image.h"
 
 template <typename T>
-T clamp(T x, T min, T max)
+inline T clamp(T x, T min, T max)
 {
     if (x < min) {
         return min;
@@ -22,8 +22,19 @@ T clamp(T x, T min, T max)
     return x;
 }
 
-Colormap::Colormap(const std::string &name, const std::vector<uint8_t> &img)
-    : name(name), colormap(img)
+inline float srgb_to_linear(const float x)
+{
+    if (x <= 0.04045f) {
+        return x / 12.92f;
+    } else {
+        return std::pow((x + 0.055f) / 1.055f, 2.4f);
+    }
+}
+
+Colormap::Colormap(const std::string &name,
+                   const std::vector<uint8_t> &img,
+                   const ColorSpace color_space)
+    : name(name), colormap(img), color_space(color_space)
 {
 }
 
@@ -91,6 +102,17 @@ TransferFunctionWidget::TransferFunctionWidget()
 void TransferFunctionWidget::add_colormap(const Colormap &map)
 {
     colormaps.push_back(map);
+
+    if (colormaps.back().color_space == SRGB) {
+        Colormap &cmap = colormaps.back();
+        cmap.color_space = LINEAR;
+        for (size_t i = 0; i < cmap.colormap.size() / 4; ++i) {
+            for (size_t j = 0; j < 3; ++j) {
+                const float x = srgb_to_linear(cmap.colormap[i * 4 + j] / 255.f);
+                cmap.colormap[i * 4 + j] = static_cast<uint8_t>(clamp(x * 255.f, 0.f, 255.f));
+            }
+        }
+    }
 }
 
 void TransferFunctionWidget::draw_ui()
@@ -120,7 +142,7 @@ void TransferFunctionWidget::draw_ui()
     // displaying the colormap texture in the UI will need to be updated.
     ImGui::Image(reinterpret_cast<void *>(colormap_img), ImVec2(canvas_size.x, 16));
     vec2f canvas_pos = ImGui::GetCursorScreenPos();
-    canvas_size.y -= 80;
+    canvas_size.y -= 20;
 
     const float point_radius = 10.f;
 
@@ -304,6 +326,13 @@ void TransferFunctionWidget::load_embedded_preset(const uint8_t *buf,
     uint8_t *img_data = stbi_load_from_memory(buf, size, &w, &h, &n, 4);
     auto img = std::vector<uint8_t>(img_data, img_data + w * 1 * 4);
     stbi_image_free(img_data);
-    colormaps.emplace_back(name, img);
+    colormaps.emplace_back(name, img, SRGB);
+    Colormap &cmap = colormaps.back();
+    for (size_t i = 0; i < cmap.colormap.size() / 4; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            const float x = srgb_to_linear(cmap.colormap[i * 4 + j] / 255.f);
+            cmap.colormap[i * 4 + j] = static_cast<uint8_t>(clamp(x * 255.f, 0.f, 255.f));
+        }
+    }
 }
 
