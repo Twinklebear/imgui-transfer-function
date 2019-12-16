@@ -85,7 +85,8 @@ TransferFunctionWidget::TransferFunctionWidget()
     load_embedded_preset(rainbow, sizeof(rainbow), "Rainbow");
     load_embedded_preset(matplotlib_plasma, sizeof(matplotlib_plasma), "Matplotlib Plasma");
     load_embedded_preset(matplotlib_virdis, sizeof(matplotlib_virdis), "Matplotlib Virdis");
-    load_embedded_preset(samsel_linear_green, sizeof(samsel_linear_green), "Samsel Linear Green");
+    load_embedded_preset(
+        samsel_linear_green, sizeof(samsel_linear_green), "Samsel Linear Green");
     load_embedded_preset(
         samsel_linear_ygb_1211g, sizeof(samsel_linear_ygb_1211g), "Samsel Linear YGB 1211G");
     load_embedded_preset(cool_warm_extended, sizeof(cool_warm_extended), "Cool Warm Extended");
@@ -118,7 +119,6 @@ void TransferFunctionWidget::add_colormap(const Colormap &map)
 void TransferFunctionWidget::draw_ui()
 {
     update_gpu_image();
-    colormap_changed = false;
 
     const ImGuiIO &io = ImGui::GetIO();
 
@@ -177,12 +177,14 @@ void TransferFunctionWidget::draw_ui()
                 } else if (io.MousePos.x - canvas_pos.x >= canvas_size.x - point_radius) {
                     selected_point = alpha_control_pts.size() - 1;
                 } else {
-                    auto fnd = std::find_if(
-                        alpha_control_pts.begin(), alpha_control_pts.end(), [&](const vec2f &p) {
-                            const vec2f pt_pos = p * view_scale + view_offset;
-                            float dist = (pt_pos - vec2f(io.MousePos)).length();
-                            return dist <= point_radius;
-                        });
+                    auto fnd =
+                        std::find_if(alpha_control_pts.begin(),
+                                     alpha_control_pts.end(),
+                                     [&](const vec2f &p) {
+                                         const vec2f pt_pos = p * view_scale + view_offset;
+                                         float dist = (pt_pos - vec2f(io.MousePos)).length();
+                                         return dist <= point_radius;
+                                     });
                     // No nearby point, we're adding a new one
                     if (fnd == alpha_control_pts.end()) {
                         alpha_control_pts.push_back(mouse_pos);
@@ -243,11 +245,13 @@ bool TransferFunctionWidget::changed() const
 
 std::vector<uint8_t> TransferFunctionWidget::get_colormap()
 {
+    colormap_changed = false;
     return current_colormap;
 }
 
 std::vector<float> TransferFunctionWidget::get_colormapf()
 {
+    colormap_changed = false;
     std::vector<float> colormapf(current_colormap.size(), 0.f);
     for (size_t i = 0; i < current_colormap.size(); ++i) {
         colormapf[i] = current_colormap[i] / 255.f;
@@ -255,8 +259,10 @@ std::vector<float> TransferFunctionWidget::get_colormapf()
     return colormapf;
 }
 
-void TransferFunctionWidget::get_colormapf(std::vector<float> &color, std::vector<float> &opacity)
+void TransferFunctionWidget::get_colormapf(std::vector<float> &color,
+                                           std::vector<float> &opacity)
 {
+    colormap_changed = false;
     color.resize((current_colormap.size() / 4) * 3);
     opacity.resize(current_colormap.size() / 4);
     for (size_t i = 0; i < current_colormap.size() / 4; ++i) {
@@ -280,7 +286,8 @@ void TransferFunctionWidget::update_gpu_image()
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
-    if (colormap_changed) {
+    if (gpu_image_stale) {
+        gpu_image_stale = false;
         glBindTexture(GL_TEXTURE_2D, colormap_img);
         glTexImage2D(GL_TEXTURE_2D,
                      0,
@@ -300,6 +307,7 @@ void TransferFunctionWidget::update_gpu_image()
 void TransferFunctionWidget::update_colormap()
 {
     colormap_changed = true;
+    gpu_image_stale = true;
     current_colormap = colormaps[selected_colormap].colormap;
     // We only change opacities for now, so go through and update the opacity
     // by blending between the neighboring control points

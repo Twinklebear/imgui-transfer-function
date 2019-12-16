@@ -50,7 +50,8 @@ int main(int argc, char **argv)
 
     fout << "uint8_t " << argv[2] << "[] = {\n";
 
-    stbi_write_png_to_func(write_callback, reinterpret_cast<void *>(&fout), w, 1, 4, data, w * 4);
+    stbi_write_png_to_func(
+        write_callback, reinterpret_cast<void *>(&fout), w, 1, 4, data, w * 4);
 
     fout << "\n};\n";
 
@@ -58,4 +59,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
