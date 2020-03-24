@@ -299,9 +299,7 @@ void TransferFunctionWidget::update_gpu_image()
                      GL_UNSIGNED_BYTE,
                      current_colormap.data());
     }
-    if (prev_tex_2d != 0) {
-        glBindTexture(GL_TEXTURE_2D, prev_tex_2d);
-    }
+    glBindTexture(GL_TEXTURE_2D, prev_tex_2d);
 }
 
 void TransferFunctionWidget::update_colormap()
