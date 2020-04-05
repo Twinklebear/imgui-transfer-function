@@ -141,7 +141,7 @@ void TransferFunctionWidget::draw_ui()
     // Note: If you're not using OpenGL for rendering your UI, the setup for
     // displaying the colormap texture in the UI will need to be updated.
     size_t tmp = colormap_img;
-    ImGui::Image((void*)(tmp), ImVec2(canvas_size.x, 16));
+    ImGui::Image(reinterpret_cast<void *>(tmp), ImVec2(canvas_size.x, 16));
     vec2f canvas_pos = ImGui::GetCursorScreenPos();
     canvas_size.y -= 20;
 
@@ -158,25 +158,25 @@ void TransferFunctionWidget::draw_ui()
     ImGui::InvisibleButton("tfn_canvas", canvas_size);
 
     static bool clicked_on_item = false;
-    if ((!io.MouseDown[0]) && (!io.MouseDown[1])) clicked_on_item = false;
-    if (ImGui::IsItemHovered() && (io.MouseDown[0] || io.MouseDown[1])) clicked_on_item = true;
-    
+    if (!io.MouseDown[0] && !io.MouseDown[1]) {
+        clicked_on_item = false;
+    }
+    if (ImGui::IsItemHovered() && (io.MouseDown[0] || io.MouseDown[1])) {
+        clicked_on_item = true;
+    }
+
     ImVec2 bbmin = ImGui::GetItemRectMin();
     ImVec2 bbmax = ImGui::GetItemRectMax();
-    ImVec2 clipped_mouse_pos = ImVec2(
-        std::min(std::max(io.MousePos.x, bbmin.x), bbmax.x),
-        std::min(std::max(io.MousePos.y, bbmin.y), bbmax.y)
-    );
+    ImVec2 clipped_mouse_pos = ImVec2(std::min(std::max(io.MousePos.x, bbmin.x), bbmax.x),
+                                      std::min(std::max(io.MousePos.y, bbmin.y), bbmax.y));
 
-    if (clicked_on_item)
-    {
+    if (clicked_on_item) {
         vec2f mouse_pos = (vec2f(clipped_mouse_pos) - view_offset) / view_scale;
         mouse_pos.x = clamp(mouse_pos.x, 0.f, 1.f);
         mouse_pos.y = clamp(mouse_pos.y, 0.f, 1.f);
 
         if (io.MouseDown[0]) {
             if (selected_point != (size_t)-1) {
-                
                 alpha_control_pts[selected_point] = mouse_pos;
 
                 // Keep the first and last control points at the edges
@@ -186,14 +186,12 @@ void TransferFunctionWidget::draw_ui()
                     alpha_control_pts[selected_point].x = 1.f;
                 }
             } else {
-                auto fnd =
-                    std::find_if(alpha_control_pts.begin(),
-                                    alpha_control_pts.end(),
-                                    [&](const vec2f &p) {
-                                        const vec2f pt_pos = p * view_scale + view_offset;
-                                        float dist = (pt_pos - vec2f(clipped_mouse_pos)).length();
-                                        return dist <= point_radius;
-                                    });
+                auto fnd = std::find_if(
+                    alpha_control_pts.begin(), alpha_control_pts.end(), [&](const vec2f &p) {
+                        const vec2f pt_pos = p * view_scale + view_offset;
+                        float dist = (pt_pos - vec2f(clipped_mouse_pos)).length();
+                        return dist <= point_radius;
+                    });
                 // No nearby point, we're adding a new one
                 if (fnd == alpha_control_pts.end()) {
                     alpha_control_pts.push_back(mouse_pos);
@@ -215,8 +213,7 @@ void TransferFunctionWidget::draw_ui()
                 selected_point = std::distance(alpha_control_pts.begin(), fnd);
             }
             update_colormap();
-        } 
-        else if (ImGui::IsMouseClicked(1)) {
+        } else if (ImGui::IsMouseClicked(1)) {
             selected_point = -1;
             // Find and remove the point
             auto fnd = std::find_if(
@@ -246,7 +243,8 @@ void TransferFunctionWidget::draw_ui()
         polyline_pts.push_back(pt_pos);
         draw_list->AddCircleFilled(pt_pos, point_radius, 0xFFFFFFFF);
     }
-    draw_list->AddPolyline(polyline_pts.data(), (int)polyline_pts.size(), 0xFFFFFFFF, false, 2.f);
+    draw_list->AddPolyline(
+        polyline_pts.data(), (int)polyline_pts.size(), 0xFFFFFFFF, false, 2.f);
     draw_list->PopClipRect();
 }
 

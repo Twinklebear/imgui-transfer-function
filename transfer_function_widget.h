@@ -43,6 +43,7 @@ class TransferFunctionWidget {
     std::vector<vec2f> alpha_control_pts = {vec2f(0.f), vec2f(1.f)};
     size_t selected_point = -1;
 
+    bool clicked_on_item = false;
     bool gpu_image_stale = true;
     bool colormap_changed = true;
     GLuint colormap_img = -1;
