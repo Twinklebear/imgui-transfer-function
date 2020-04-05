@@ -140,7 +140,8 @@ void TransferFunctionWidget::draw_ui()
     vec2f canvas_size = ImGui::GetContentRegionAvail();
     // Note: If you're not using OpenGL for rendering your UI, the setup for
     // displaying the colormap texture in the UI will need to be updated.
-    ImGui::Image(reinterpret_cast<void *>(colormap_img), ImVec2(canvas_size.x, 16));
+    size_t tmp = colormap_img;
+    ImGui::Image((void*)(tmp), ImVec2(canvas_size.x, 16));
     vec2f canvas_pos = ImGui::GetCursorScreenPos();
     canvas_size.y -= 20;
 
@@ -155,13 +156,27 @@ void TransferFunctionWidget::draw_ui()
     draw_list->AddRect(canvas_pos, canvas_pos + canvas_size, ImColor(180, 180, 180, 255));
 
     ImGui::InvisibleButton("tfn_canvas", canvas_size);
-    if (ImGui::IsItemHovered()) {
-        vec2f mouse_pos = (vec2f(io.MousePos) - view_offset) / view_scale;
+
+    static bool clicked_on_item = false;
+    if ((!io.MouseDown[0]) && (!io.MouseDown[1])) clicked_on_item = false;
+    if (ImGui::IsItemHovered() && (io.MouseDown[0] || io.MouseDown[1])) clicked_on_item = true;
+    
+    ImVec2 bbmin = ImGui::GetItemRectMin();
+    ImVec2 bbmax = ImGui::GetItemRectMax();
+    ImVec2 clipped_mouse_pos = ImVec2(
+        std::min(std::max(io.MousePos.x, bbmin.x), bbmax.x),
+        std::min(std::max(io.MousePos.y, bbmin.y), bbmax.y)
+    );
+
+    if (clicked_on_item)
+    {
+        vec2f mouse_pos = (vec2f(clipped_mouse_pos) - view_offset) / view_scale;
         mouse_pos.x = clamp(mouse_pos.x, 0.f, 1.f);
         mouse_pos.y = clamp(mouse_pos.y, 0.f, 1.f);
 
         if (io.MouseDown[0]) {
             if (selected_point != (size_t)-1) {
+                
                 alpha_control_pts[selected_point] = mouse_pos;
 
                 // Keep the first and last control points at the edges
@@ -171,26 +186,20 @@ void TransferFunctionWidget::draw_ui()
                     alpha_control_pts[selected_point].x = 1.f;
                 }
             } else {
-                // See if we're selecting a point or adding one
-                if (io.MousePos.x - canvas_pos.x <= point_radius) {
-                    selected_point = 0;
-                } else if (io.MousePos.x - canvas_pos.x >= canvas_size.x - point_radius) {
-                    selected_point = alpha_control_pts.size() - 1;
-                } else {
-                    auto fnd =
-                        std::find_if(alpha_control_pts.begin(),
-                                     alpha_control_pts.end(),
-                                     [&](const vec2f &p) {
-                                         const vec2f pt_pos = p * view_scale + view_offset;
-                                         float dist = (pt_pos - vec2f(io.MousePos)).length();
-                                         return dist <= point_radius;
-                                     });
-                    // No nearby point, we're adding a new one
-                    if (fnd == alpha_control_pts.end()) {
-                        alpha_control_pts.push_back(mouse_pos);
-                    }
+                auto fnd =
+                    std::find_if(alpha_control_pts.begin(),
+                                    alpha_control_pts.end(),
+                                    [&](const vec2f &p) {
+                                        const vec2f pt_pos = p * view_scale + view_offset;
+                                        float dist = (pt_pos - vec2f(clipped_mouse_pos)).length();
+                                        return dist <= point_radius;
+                                    });
+                // No nearby point, we're adding a new one
+                if (fnd == alpha_control_pts.end()) {
+                    alpha_control_pts.push_back(mouse_pos);
                 }
             }
+
             // Keep alpha control points ordered by x coordinate, update
             // selected point index to match
             std::sort(alpha_control_pts.begin(),
@@ -200,19 +209,20 @@ void TransferFunctionWidget::draw_ui()
                 auto fnd = std::find_if(
                     alpha_control_pts.begin(), alpha_control_pts.end(), [&](const vec2f &p) {
                         const vec2f pt_pos = p * view_scale + view_offset;
-                        float dist = (pt_pos - vec2f(io.MousePos)).length();
+                        float dist = (pt_pos - vec2f(clipped_mouse_pos)).length();
                         return dist <= point_radius;
                     });
                 selected_point = std::distance(alpha_control_pts.begin(), fnd);
             }
             update_colormap();
-        } else if (ImGui::IsMouseClicked(1)) {
+        } 
+        else if (ImGui::IsMouseClicked(1)) {
             selected_point = -1;
             // Find and remove the point
             auto fnd = std::find_if(
                 alpha_control_pts.begin(), alpha_control_pts.end(), [&](const vec2f &p) {
                     const vec2f pt_pos = p * view_scale + view_offset;
-                    float dist = (pt_pos - vec2f(io.MousePos)).length();
+                    float dist = (pt_pos - vec2f(clipped_mouse_pos)).length();
                     return dist <= point_radius;
                 });
             // We also want to prevent erasing the first and last points
@@ -224,6 +234,8 @@ void TransferFunctionWidget::draw_ui()
         } else {
             selected_point = -1;
         }
+    } else {
+        selected_point = -1;
     }
 
     // Draw the alpha control points, and build the points for the polyline
@@ -234,7 +246,7 @@ void TransferFunctionWidget::draw_ui()
         polyline_pts.push_back(pt_pos);
         draw_list->AddCircleFilled(pt_pos, point_radius, 0xFFFFFFFF);
     }
-    draw_list->AddPolyline(polyline_pts.data(), polyline_pts.size(), 0xFFFFFFFF, false, 2.f);
+    draw_list->AddPolyline(polyline_pts.data(), (int)polyline_pts.size(), 0xFFFFFFFF, false, 2.f);
     draw_list->PopClipRect();
 }
 
@@ -292,16 +304,16 @@ void TransferFunctionWidget::update_gpu_image()
         glTexImage2D(GL_TEXTURE_2D,
                      0,
                      GL_RGB8,
-                     current_colormap.size() / 4,
+                     (GLsizei)(current_colormap.size() / 4),
                      1,
                      0,
                      GL_RGBA,
                      GL_UNSIGNED_BYTE,
                      current_colormap.data());
     }
-    if (prev_tex_2d != 0) {
+    // if (prev_tex_2d != 0) {
         glBindTexture(GL_TEXTURE_2D, prev_tex_2d);
-    }
+    // }
 }
 
 void TransferFunctionWidget::update_colormap()
@@ -331,7 +343,7 @@ void TransferFunctionWidget::load_embedded_preset(const uint8_t *buf,
                                                   const std::string &name)
 {
     int w, h, n;
-    uint8_t *img_data = stbi_load_from_memory(buf, size, &w, &h, &n, 4);
+    uint8_t *img_data = stbi_load_from_memory(buf, (int)size, &w, &h, &n, 4);
     auto img = std::vector<uint8_t>(img_data, img_data + w * 1 * 4);
     stbi_image_free(img_data);
     colormaps.emplace_back(name, img, SRGB);
