@@ -10,6 +10,8 @@
 
 #include "stb_image.h"
 
+namespace tfnw {
+
 template <typename T>
 inline T clamp(T x, T min, T max)
 {
@@ -352,3 +354,4 @@ void TransferFunctionWidget::load_embedded_preset(const uint8_t *buf,
     }
 }
 
+}

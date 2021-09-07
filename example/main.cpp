@@ -111,7 +111,7 @@ void run_app(int argc, const char **argv, SDL_Window *window)
 {
     ImGuiIO &io = ImGui::GetIO();
 
-    TransferFunctionWidget tfn_widget;
+    tfnw::TransferFunctionWidget tfn_widget;
 
     // Load any extra colormaps the user wants to see in the demo
     for (int i = 1; i < argc; ++i) {
@@ -120,7 +120,7 @@ void run_app(int argc, const char **argv, SDL_Window *window)
         auto img = std::vector<uint8_t>(img_data, img_data + w * 1 * 4);
         stbi_image_free(img_data);
         // Input images are assumed to be sRGB color-space
-        tfn_widget.add_colormap(Colormap(argv[i], img, SRGB));
+        tfn_widget.add_colormap(tfnw::Colormap(argv[i], img, tfnw::SRGB));
     }
 
     // A texture so we can color the background of the window by the colormap

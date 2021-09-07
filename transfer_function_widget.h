@@ -6,6 +6,8 @@
 #include "gl_core_4_5.h"
 #include "imgui.h"
 
+namespace tfnw {
+
 enum ColorSpace { LINEAR, SRGB };
 
 struct Colormap {
@@ -79,4 +81,5 @@ private:
 
     void load_embedded_preset(const uint8_t *buf, size_t size, const std::string &name);
 };
+}
 
