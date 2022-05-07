@@ -1,4 +1,6 @@
 *.swp
 *.raw
 build/
+.DS_Store
+cmake-build/
 

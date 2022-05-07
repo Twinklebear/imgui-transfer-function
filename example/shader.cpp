@@ -124,6 +124,7 @@ GLint compile_shader(GLenum type, const std::string &src)
         std::vector<char> log(len, '\0');
         log.resize(len);
         glGetShaderInfoLog(shader, log.size(), 0, log.data());
+        std::cout << log.data() << "\n" << std::flush;
         glDeleteShader(shader);
         return -1;
     }

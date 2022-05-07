@@ -8,8 +8,13 @@ find_package(OpenGL REQUIRED)
 
 add_subdirectory(imgui)
 
-add_executable(imgui_tfn main.cpp ../transfer_function_widget.cpp shader.cpp
-	imgui_impl_opengl3.cpp imgui_impl_sdl.cpp ../gl_core_4_5.c)
+add_executable(imgui_tfn
+    main.cpp
+    ../transfer_function_widget.cpp
+    shader.cpp
+	imgui_impl_opengl3.cpp
+    imgui_impl_sdl.cpp
+    ../gl_core_4_5.c)
 
 set_target_properties(imgui_tfn PROPERTIES
 	CXX_STANDARD 14
@@ -22,4 +27,7 @@ target_include_directories(imgui_tfn PUBLIC
 
 target_link_libraries(imgui_tfn PUBLIC
 	imgui ${SDL2_LIBRARY} ${OPENGL_LIBRARIES})
+
+target_compile_definitions(imgui_tfn PUBLIC
+    -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM)
 

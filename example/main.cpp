@@ -12,7 +12,7 @@
 #include "transfer_function_widget.h"
 
 const std::string display_colormap_vs = R"(
-#version 450 core
+#version 330 core
 
 const vec4 pos[4] = vec4[4](
 	vec4(-1, 1, 0.5, 1),
@@ -32,9 +32,9 @@ void main(void) {
 )";
 
 const std::string display_colormap_fs = R"(
-#version 450 core
+#version 330 core
 
-layout(binding = 0) uniform sampler1D img;
+uniform sampler1D img;
 
 in float vuv;
 
@@ -57,11 +57,11 @@ int main(int argc, const char **argv)
         return -1;
     }
 
-    const char *glsl_version = "#version 450 core";
+    const char *glsl_version = "#version 330 core";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
     // Create window with graphics context
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -141,7 +141,7 @@ void run_app(int argc, const char **argv, SDL_Window *window)
                  colormap.data());
 
     GLuint vao;
-    glCreateVertexArrays(1, &vao);
+    glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -167,7 +167,8 @@ void run_app(int argc, const char **argv, SDL_Window *window)
                 event.window.windowID == SDL_GetWindowID(window)) {
                 done = true;
             }
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+            if (event.type == SDL_WINDOWEVENT &&
+                event.window.event == SDL_WINDOWEVENT_RESIZED) {
                 win_width = event.window.data1;
                 win_height = event.window.data2;
                 io.DisplaySize.x = win_width;
